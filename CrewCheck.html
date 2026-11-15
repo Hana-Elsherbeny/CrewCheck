@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrewCheck — Live Health Monitoring</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4ee; --bg-2:#ebe8df; --surface:#ffffff; --surface-2:#f1f5ff;
+  --border:rgba(31,107,255,0.14); --border-strong:rgba(31,107,255,0.34);
+  --text:#0b1b3a; --text-dim:#4a5b7e; --text-dimmer:#7d8ba8;
+  --accent:#1f6bff; --accent-2:#0088dd; --accent-3:#ff3d71; --warn:#f59e0b;
+  --glow:rgba(31,107,255,0.4); --radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.65;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 80% 50% at 50% -10%,rgba(31,107,255,0.16),transparent 60%),
+  radial-gradient(ellipse 60% 40% at 92% 25%,rgba(0,184,255,0.12),transparent 60%),
+  radial-gradient(ellipse 50% 40% at 8% 85%,rgba(31,107,255,0.08),transparent 60%),
+  linear-gradient(180deg,#fbfaf6,#f1eee6);
+  pointer-events:none;z-index:0}
+.stars{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.7}
+.stars span{position:absolute;width:2px;height:2px;background:#1f6bff;box-shadow:0 0 6px #1f6bff,0 0 12px rgba(0,184,255,.6);border-radius:50%;animation:twinkle 4s infinite ease-in-out}
+@keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.9}}
+.container{width:min(1180px,92%);margin:0 auto;position:relative;z-index:1}
+
+nav{position:sticky;top:0;z-index:100;backdrop-filter:blur(18px);background:rgba(246,244,238,0.8);border-bottom:1px solid var(--border)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem}
+.logo-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;box-shadow:0 0 24px var(--glow)}
+.logo-mark svg{width:20px;height:20px}
+.nav-links{display:flex;gap:26px;list-style:none}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:.88rem;font-weight:500;transition:color .25s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{padding:9px 20px;background:linear-gradient(135deg,var(--accent),#1450d6);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:.85rem;cursor:pointer;text-decoration:none}
+.burger{display:none;background:none;border:none;color:var(--text);cursor:pointer}
+
+.hero{padding:70px 0 50px}
+.hero-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:50px;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(31,107,255,.08);border:1px solid var(--border-strong);font-size:.76rem;font-weight:500;color:var(--accent);text-transform:uppercase;margin-bottom:22px}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 10px var(--accent-2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2.2rem,4.5vw,3.5rem);line-height:1.08;font-weight:700;margin-bottom:20px}
+h1 .grad{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-2) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:1.05rem;color:var(--text-dim);max-width:500px;margin-bottom:30px}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap}
+.btn{padding:13px 26px;border-radius:11px;font-weight:600;font-size:.9rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all .25s;border:1px solid transparent}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#1450d6);color:#fff;box-shadow:0 8px 30px rgba(31,107,255,.35)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(31,107,255,.5)}
+.btn-ghost{background:transparent;border:1px solid var(--border-strong);color:var(--text)}
+.btn-ghost:hover{background:var(--surface);border-color:var(--accent)}
+
+.dash{background:linear-gradient(160deg,var(--surface) 0%,var(--bg-2) 100%);border:1px solid var(--border-strong);border-radius:20px;padding:20px;box-shadow:0 30px 80px rgba(31,80,200,.16),0 0 60px rgba(31,107,255,.14)}
+.dash-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.dash-title{font-family:'Space Grotesk',sans-serif;font-size:.8rem;font-weight:600;color:var(--text-dim);text-transform:uppercase}
+.live-tag{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--accent-2);font-weight:600}
+.live-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 8px var(--accent-2);animation:pulse 1.6s infinite}
+.vitals-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.vital{background:rgba(31,107,255,.035);border:1px solid var(--border);border-radius:12px;padding:12px 11px;transition:border-color .3s}
+.vital.warn{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.05)}
+.vital-label{font-size:.66rem;color:var(--text-dimmer);text-transform:uppercase;margin-bottom:3px}
+.vital-value{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:600}
+.vital-value small{font-size:.62rem;color:var(--text-dim);font-weight:400}
+.chart-wrap{position:relative;height:110px;margin-bottom:6px}
+.chart-wrap canvas{width:100%;height:100%;display:block}
+.chart-label{display:flex;justify-content:space-between;font-size:.66rem;color:var(--text-dimmer);padding:0 4px}
+.alert-box{display:flex;align-items:center;gap:10px;margin-top:14px;padding:11px 13px;border-radius:12px;font-size:.78rem;transition:all .4s}
+.alert-box.warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);color:var(--warn)}
+.alert-box.danger{background:rgba(255,61,113,.08);border:1px solid rgba(255,61,113,.35);color:var(--accent-3)}
+.alert-box.ok{background:rgba(0,184,255,.07);border:1px solid rgba(0,184,255,.28);color:var(--accent-2)}
+.alert-box svg{flex-shrink:0}
+
+section{padding:80px 0;position:relative}
+.section-head{text-align:center;max-width:720px;margin:0 auto 50px}
+.section-tag{font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.8rem,3.2vw,2.5rem);font-weight:700;line-height:1.15;margin-bottom:14px}
+.section-head p{color:var(--text-dim);font-size:1rem}
+
+.live-panel{display:grid;grid-template-columns:1.3fr 1fr;gap:20px}
+.panel{background:linear-gradient(160deg,var(--surface),var(--bg-2));border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+.panel h3{font-family:'Space Grotesk',sans-serif;font-size:1rem;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.big-chart{height:220px;position:relative}
+.big-chart canvas{width:100%;height:100%}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.ctrl-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border-strong);background:transparent;color:var(--text-dim);font-size:.78rem;font-weight:500;cursor:pointer;transition:all .2s}
+.ctrl-btn:hover{color:var(--text);border-color:var(--accent)}
+.ctrl-btn.active{background:rgba(31,107,255,.15);border-color:var(--accent);color:var(--accent)}
+
+.metric{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.metric .lbl{font-size:.8rem;color:var(--text-dim);width:110px;flex-shrink:0}
+.metric .bar{flex:1;height:8px;background:rgba(31,107,255,.08);border-radius:999px;overflow:hidden}
+.metric .bar span{display:block;height:100%;border-radius:999px;transition:width .6s ease,background .4s}
+.metric .val{font-family:'Space Grotesk',sans-serif;font-size:.8rem;font-weight:600;width:64px;text-align:right}
+
+.rec-item{display:flex;gap:12px;padding:14px;border-radius:12px;background:rgba(31,107,255,.035);border:1px solid var(--border);margin-bottom:10px;transition:all .3s}
+.rec-item.sev-high{border-color:rgba(255,61,113,.3);background:rgba(255,61,113,.04)}
+.rec-item.sev-med{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.04)}
+.rec-item.sev-low{border-color:rgba(0,184,255,.25);background:rgba(0,184,255,.03)}
+.rec-item .ico{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex-shrink:0}
+.rec-item.sev-high .ico{background:rgba(255,61,113,.15);color:var(--accent-3)}
+.rec-item.sev-med .ico{background:rgba(245,158,11,.15);color:var(--warn)}
+.rec-item.sev-low .ico{background:rgba(0,184,255,.12);color:var(--accent-2)}
+.rec-item .txt{font-size:.82rem}
+.rec-item .sub{font-size:.72rem;color:var(--text-dim);margin-top:2px}
+
+.log{max-height:240px;overflow-y:auto;font-size:.75rem}
+.log-entry{padding:8px 10px;border-radius:6px;margin-bottom:5px;background:rgba(31,107,255,.035);border-left:2px solid var(--border-strong);display:flex;gap:8px;animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.log-time{color:var(--text-dimmer);flex-shrink:0}
+.log-entry.info{border-left-color:var(--accent)}
+.log-entry.warn{border-left-color:var(--warn)}
+.log-entry.danger{border-left-color:var(--accent-3)}
+.log-entry.ok{border-left-color:var(--accent-2)}
+
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feature{background:linear-gradient(160deg,var(--surface),var(--bg-2));border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:all .3s}
+.feature:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+.feature-icon{width:42px;height:42px;border-radius:11px;background:rgba(31,107,255,.1);border:1px solid var(--border-strong);display:grid;place-items:center;margin-bottom:16px;color:var(--accent)}
+.feature-icon svg{width:20px;height:20px}
+.feature h3{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:600;margin-bottom:8px}
+.feature p{color:var(--text-dim);font-size:.85rem}
+
+footer{border-top:1px solid var(--border);padding:36px 0;position:relative;z-index:1}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.footer-inner p{color:var(--text-dimmer);font-size:.82rem}
+.footer-links{display:flex;gap:22px}
+.footer-links a{color:var(--text-dim);text-decoration:none;font-size:.82rem}
+.footer-links a:hover{color:var(--accent)}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.mobile-menu{display:none;position:fixed;inset:0;background:rgba(246,244,238,.97);backdrop-filter:blur(20px);z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:26px}
+.mobile-menu.open{display:flex}
+.mobile-menu a{color:var(--text);text-decoration:none;font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:500}
+.mobile-menu .close{position:absolute;top:20px;right:24px;background:none;border:none;color:var(--text);font-size:2rem;cursor:pointer}
+
+
+.crew-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:20px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{font-size:.7rem;color:var(--text-dimmer);text-transform:uppercase}
+.field input,.field select{background:rgba(31,107,255,.045);border:1px solid var(--border-strong);border-radius:9px;color:var(--text);padding:9px 11px;font:inherit;font-size:.85rem;width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.member{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(31,107,255,.035);border:1px solid var(--border);margin-bottom:10px;transition:all .25s}
+.member.active{border-color:var(--accent);background:rgba(31,107,255,.07)}
+.avatar{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-family:'Space Grotesk',sans-serif;font-weight:700;color:#fff;flex-shrink:0}
+.member .info{flex:1;min-width:0}.member .nm{font-weight:600;font-size:.9rem}
+.member .rates{font-size:.72rem;color:var(--text-dim)}
+.ctrl-btn.danger:hover{border-color:var(--accent-3);color:var(--accent-3)}
+.form-msg{font-size:.76rem;margin-top:10px;min-height:1em}
+.panel,.feature,.member,.vital{box-shadow:0 0 0 1px rgba(31,107,255,.05),0 10px 36px rgba(31,107,255,.09)}
+.panel:hover,.feature:hover{border-color:var(--accent);box-shadow:0 0 0 1px rgba(31,107,255,.25),0 0 28px rgba(31,107,255,.28)}
+.dash{border-color:var(--accent);box-shadow:0 0 0 1px rgba(31,107,255,.2),0 0 44px rgba(31,107,255,.28),0 30px 80px rgba(31,80,200,.16)}
+h1 .grad{filter:drop-shadow(0 0 16px rgba(31,107,255,.4))}
+.section-tag,.dash-title,.live-tag{text-shadow:0 0 14px rgba(31,107,255,.45)}
+.btn-primary,.nav-cta{box-shadow:0 0 22px rgba(31,107,255,.55),0 6px 20px rgba(31,107,255,.3)}
+.ctrl-btn.active,.member.active{box-shadow:0 0 16px rgba(31,107,255,.35)}
+.badge{background:rgba(255,255,255,.7);box-shadow:0 0 18px rgba(31,107,255,.25)}
+.field input,.field select{background:#fff}
+.logo-mark{box-shadow:0 0 22px var(--glow),0 0 40px rgba(0,184,255,.35)}
+.cosmos{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.9}
+.cosmos ellipse{fill:none;stroke:#1f6bff;stroke-width:1;stroke-dasharray:3 7;opacity:.3}
+.cosmos .sat{fill:#1f6bff;filter:drop-shadow(0 0 6px #1f6bff) drop-shadow(0 0 12px #00b8ff)}
+.hero{position:relative}
+.planet{position:absolute;top:18px;right:2%;width:170px;height:170px;border-radius:50%;z-index:0;
+  background:radial-gradient(circle at 32% 28%,#fff 0%,#c4d9ff 36%,#1f6bff 78%,#0a35a0 100%);
+  box-shadow:0 0 50px rgba(31,107,255,.55),0 0 110px rgba(0,184,255,.35),inset -16px -16px 36px rgba(10,53,160,.4);animation:float 9s ease-in-out infinite}
+.planet::after{content:'';position:absolute;left:-48%;right:-48%;top:43%;height:15%;border-radius:50%;border:2px solid rgba(31,107,255,.65);transform:rotate(-16deg);box-shadow:0 0 16px rgba(31,107,255,.6),inset 0 0 12px rgba(0,184,255,.4)}
+.moon{position:absolute;bottom:0;left:-30px;width:56px;height:56px;border-radius:50%;z-index:0;background:radial-gradient(circle at 35% 30%,#fff,#dfe8f8 60%,#9db8e6);box-shadow:0 0 30px rgba(31,107,255,.4);animation:float 7s ease-in-out infinite reverse}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@media(max-width:720px){.planet{width:90px;height:90px;top:6px;right:-10px;opacity:.7}.moon{display:none}}
+@media(max-width:980px){.crew-grid{grid-template-columns:1fr}
+  .hero-grid{grid-template-columns:1fr;gap:36px}
+  .live-panel{grid-template-columns:1fr}
+  .features-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:720px){
+  .nav-links{display:none}.burger{display:block}.nav-cta{display:none}
+  section{padding:56px 0}
+  .features-grid{grid-template-columns:1fr}
+  .vitals-row{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){.vitals-row{grid-template-columns:1fr}.hero-actions .btn{width:100%;justify-content:center}}
+
+#welcome{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;overflow:hidden;
+  background:radial-gradient(ellipse 70% 55% at 50% 35%,rgba(31,107,255,.2),transparent 65%),radial-gradient(ellipse 50% 40% at 85% 90%,rgba(0,184,255,.14),transparent 60%),linear-gradient(180deg,#fbfaf6,#efebe2);
+  transition:opacity .8s ease,transform .8s ease,filter .8s ease}
+#welcome.leave{opacity:0;transform:scale(1.06);filter:blur(6px);pointer-events:none}
+#welcome .stars{opacity:.8}
+.w-stage{position:relative;width:260px;height:260px;margin-bottom:34px;z-index:1}
+.w-orbits{position:absolute;left:50%;top:50%;width:640px;height:640px;margin:-320px 0 0 -320px;pointer-events:none;max-width:none}
+.w-orbits ellipse{fill:none;stroke:#1f6bff;stroke-width:1;stroke-dasharray:3 7;opacity:.4}
+.w-orbits .sat{fill:#1f6bff;filter:drop-shadow(0 0 6px #1f6bff) drop-shadow(0 0 14px #00b8ff)}
+.w-planet{position:absolute;left:50%;top:50%;width:140px;height:140px;margin:-70px 0 0 -70px;border-radius:50%;
+  background:radial-gradient(circle at 32% 28%,#fff 0%,#c4d9ff 36%,#1f6bff 78%,#0a35a0 100%);
+  box-shadow:0 0 60px rgba(31,107,255,.6),0 0 130px rgba(0,184,255,.4),inset -14px -14px 32px rgba(10,53,160,.4);animation:float 7s ease-in-out infinite}
+.w-planet::after{content:'';position:absolute;left:-50%;right:-50%;top:43%;height:15%;border-radius:50%;border:2px solid rgba(31,107,255,.7);transform:rotate(-16deg);box-shadow:0 0 18px rgba(31,107,255,.65),inset 0 0 12px rgba(0,184,255,.4)}
+.w-in{opacity:0;transform:translateY(18px);animation:wIn .9s ease forwards;position:relative;z-index:1}
+@keyframes wIn{to{opacity:1;transform:translateY(0)}}
+#welcome h1{font-size:clamp(2.3rem,6vw,4rem);margin-bottom:14px}
+#welcome .hero-sub{margin:0 auto 22px;max-width:520px}
+.w-chips{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:26px}
+.w-chips span{padding:6px 14px;border-radius:999px;border:1px solid var(--border-strong);background:rgba(255,255,255,.75);font-size:.74rem;font-weight:500;color:var(--accent);box-shadow:0 0 16px rgba(31,107,255,.22)}
+.w-bar{width:260px;height:4px;border-radius:999px;background:rgba(31,107,255,.12);overflow:hidden;margin:0 auto 10px}
+.w-bar span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#00b8ff,#1f6bff);box-shadow:0 0 14px #1f6bff;animation:wBar 1.9s ease-out forwards}
+@keyframes wBar{to{width:100%}}
+.w-status{font-size:.78rem;color:var(--text-dim);margin-bottom:22px;min-height:1.4em;letter-spacing:.04em}
+#enterBtn{transition:opacity .5s,transform .25s,box-shadow .25s}
+#enterBtn:disabled{opacity:.35;pointer-events:none;cursor:default}
+#welcome.ready #enterBtn{animation:glowPulse 2.2s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 22px rgba(31,107,255,.55),0 6px 20px rgba(31,107,255,.3)}50%{box-shadow:0 0 44px rgba(31,107,255,.85),0 6px 26px rgba(31,107,255,.45)}}
+@media(max-width:720px){.w-stage{width:200px;height:200px;margin-bottom:26px}.w-planet{width:110px;height:110px;margin:-55px 0 0 -55px}.w-orbits{width:520px;height:520px;margin:-260px 0 0 -260px}}
+</style>
+</head>
+<body>
+
+<div id="welcome">
+  <div class="stars" id="wStars"></div>
+  <div class="w-stage">
+    <svg class="w-orbits" viewBox="0 0 640 640" aria-hidden="true"><ellipse cx="320" cy="320" rx="120" ry="120"/><ellipse cx="320" cy="320" rx="185" ry="185"/><ellipse cx="320" cy="320" rx="255" ry="255"/><g><animateTransform attributeName="transform" type="rotate" from="0 320 320" to="360 320 320" dur="14s" repeatCount="indefinite"/><circle class="sat" cx="440" cy="320" r="4"/></g><g><animateTransform attributeName="transform" type="rotate" from="0 320 320" to="-360 320 320" dur="24s" repeatCount="indefinite"/><circle class="sat" cx="505" cy="320" r="5"/></g><g><animateTransform attributeName="transform" type="rotate" from="0 320 320" to="360 320 320" dur="38s" repeatCount="indefinite"/><circle class="sat" cx="575" cy="320" r="4"/></g></svg>
+    <div class="w-planet"></div>
+  </div>
+  <div class="badge w-in" style="animation-delay:.2s"><span class="dot"></span> Mission Telemetry · Standby</div>
+  <h1 class="w-in" style="animation-delay:.4s">Welcome to <span class="grad">CrewCheck</span></h1>
+  <p class="hero-sub w-in" style="animation-delay:.6s">Early-warning health monitoring for long space missions. It learns each astronaut's normal, then spots the change before the numbers do.</p>
+  <div class="w-chips w-in" style="animation-delay:.8s"><span>Personal baseline</span><span>Drift detection</span><span>Recovery tracking</span></div>
+  <div class="w-in" style="animation-delay:1s">
+    <div class="w-bar"><span></span></div>
+    <div class="w-status" id="wStatus">Initializing…</div>
+    <button class="btn btn-primary" id="enterBtn" disabled>Enter Mission Control
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="stars" id="stars"></div>
+<svg class="cosmos" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMin slice" aria-hidden="true"><ellipse cx="900" cy="220" rx="170" ry="170"/><ellipse cx="900" cy="220" rx="300" ry="300"/><ellipse cx="900" cy="220" rx="450" ry="450"/><ellipse cx="300" cy="700" rx="140" ry="140"/><g><animateTransform attributeName="transform" type="rotate" from="0 900 220" to="360 900 220" dur="40s" repeatCount="indefinite"/><circle class="sat" cx="1070" cy="220" r="3"/></g><g><animateTransform attributeName="transform" type="rotate" from="0 900 220" to="-360 900 220" dur="70s" repeatCount="indefinite"/><circle class="sat" cx="1200" cy="220" r="4"/></g><g><animateTransform attributeName="transform" type="rotate" from="0 900 220" to="360 900 220" dur="110s" repeatCount="indefinite"/><circle class="sat" cx="1350" cy="220" r="3"/></g></svg>
+
+<nav>
+  <div class="container nav-inner">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" fill="#fff"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-28 12 12)"/>
+        </svg>
+      </div>
+      CrewCheck
+    </div>
+    <ul class="nav-links">
+      <li><a href="#live">Live Dashboard</a></li>
+      <li><a href="#crew">Crew</a></li>
+      <li><a href="#analysis">Analysis</a></li>
+      <li><a href="#features">Features</a></li>
+    </ul>
+    <a href="#live" class="nav-cta">View Live Demo</a>
+    <button class="burger" id="burger" aria-label="Menu">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <button class="close" id="closeMenu">&times;</button>
+  <a href="#live">Live Dashboard</a>
+  <a href="#crew">Crew</a>
+  <a href="#analysis">Analysis</a>
+  <a href="#features">Features</a>
+</div>
+
+<header class="hero">
+  <div class="planet"></div><div class="moon"></div>
+  <div class="container hero-grid">
+    <div>
+      <div class="badge"><span class="dot"></span> Mission Telemetry · Live</div>
+      <h1>Health monitoring that <span class="grad">learns your body</span>, not a textbook</h1>
+      <p class="hero-sub">This is a working demo. Watch the astronaut's vitals stream in real time, recovery time drift, and CrewCheck's AI raise early warnings as patterns build.</p>
+      <div class="hero-actions">
+        <a href="#live" class="btn btn-primary">
+          Open Live Dashboard
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="#analysis" class="btn btn-ghost">See AI Analysis</a>
+      </div>
+    </div>
+
+    <div class="dash">
+      <div class="dash-head">
+        <span class="dash-title" id="dashTitle">Astronaut Vitals — Live</span>
+        <span class="live-tag"><span class="dot"></span> STREAMING</span>
+      </div>
+      <div class="vitals-row">
+        <div class="vital" id="vHR">
+          <div class="vital-label">Heart Rate</div>
+          <div class="vital-value"><span id="hrVal">72</span> <small>bpm</small></div>
+        </div>
+        <div class="vital" id="vSpO2">
+          <div class="vital-label">SpO₂</div>
+          <div class="vital-value"><span id="spo2Val">98</span> <small>%</small></div>
+        </div>
+        <div class="vital" id="vTemp">
+          <div class="vital-label">Temp</div>
+          <div class="vital-value"><span id="tempVal">36.7</span> <small>°C</small></div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="miniChart"></canvas></div>
+      <div class="chart-label"><span>60s ago</span><span>now</span></div>
+      <div class="alert-box ok" id="miniAlert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <span id="miniAlertText">All vitals stable.</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="live">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Live Simulation</div>
+      <h2>Watch CrewCheck run</h2>
+      <p>Every second, new sensor readings arrive. The AI watches drift, recovery, and activity response — and reacts.</p>
+    </div>
+    <div class="live-panel">
+      <div class="panel reveal">
+        <h3>
+          <span id="bigChartTitle">Heart Rate — last 3 minutes</span>
+          <span style="font-size:.72rem;color:var(--text-dimmer);font-weight:400">baseline <b id="baseLbl">52</b> bpm</span>
+        </h3>
+        <div class="big-chart"><canvas id="bigChart"></canvas></div>
+        <div class="controls">
+          <button class="ctrl-btn active" data-metric="hr">Heart Rate</button>
+          <button class="ctrl-btn" data-metric="recovery">Recovery Time</button>
+          <button class="ctrl-btn" data-metric="spo2">SpO₂</button>
+          <button class="ctrl-btn" data-metric="sleep">Sleep</button>
+        </div>
+      </div>
+      <div class="panel reveal">
+        <h3>Pattern Analysis</h3>
+        <div class="metric">
+          <span class="lbl">Recovery</span>
+          <div class="bar"><span id="mRecovery" style="width:30%;background:linear-gradient(90deg,#00b8ff,#1f6bff)"></span></div>
+          <span class="val" id="mRecoveryVal" style="color:var(--accent-2)">OK</span>
+        </div>
+        <div class="metric">
+          <span class="lbl">Sleep Quality</span>
+          <div class="bar"><span id="mSleep" style="width:70%;background:linear-gradient(90deg,#00b8ff,#1f6bff)"></span></div>
+          <span class="val" id="mSleepVal" style="color:var(--accent-2)">Good</span>
+        </div>
+        <div class="metric">
+          <span class="lbl">HR Drift</span>
+          <div class="bar"><span id="mDrift" style="width:15%;background:linear-gradient(90deg,#00b8ff,#1f6bff)"></span></div>
+          <span class="val" id="mDriftVal" style="color:var(--accent-2)">Low</span>
+        </div>
+        <div class="metric">
+          <span class="lbl">Fatigue</span>
+          <div class="bar"><span id="mFatigue" style="width:40%;background:linear-gradient(90deg,#00b8ff,#1f6bff)"></span></div>
+          <span class="val" id="mFatigueVal" style="color:var(--accent-2)">4/10</span>
+        </div>
+        <h3 style="margin-top:22px">AI Recommendations</h3>
+        <div id="recList"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="crew">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Crew Management</div>
+      <h2>Add crew, set their own rates</h2>
+      <p>Each member has a personal baseline. Select a member and the whole dashboard is measured against their normal.</p>
+    </div>
+    <div class="crew-grid">
+      <div class="panel reveal">
+        <h3><span id="formTitle">Add Crew Member</span></h3>
+        <div class="field"><label>Full name</label><input id="fName" maxlength="40" placeholder="e.g. Dr. Lena Okafor"></div>
+        <div class="field"><label>Role</label><input id="fRole" maxlength="40" placeholder="e.g. Flight Engineer"></div>
+        <div class="field-row">
+          <div class="field"><label>Resting HR (bpm)</label><input id="fHr" type="number" value="60"></div>
+          <div class="field"><label>SpO₂ (%)</label><input id="fSpo2" type="number" step="0.1" value="98"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Body temp (°C)</label><input id="fTemp" type="number" step="0.1" value="36.6"></div>
+          <div class="field"><label>Recovery time (min)</label><input id="fRec" type="number" value="10"></div>
+        </div>
+        <div class="field"><label>Sleep quality baseline (0–100)</label><input id="fSleep" type="number" value="75"></div>
+        <div class="controls" style="margin-top:4px">
+          <button class="btn btn-primary" id="saveMember" style="padding:10px 20px">Save member</button>
+          <button class="ctrl-btn" id="cancelEdit" style="display:none">Cancel</button>
+        </div>
+        <div class="form-msg" id="formMsg"></div>
+        <h3 style="margin-top:24px">Daily Check-in <span id="ciWho" style="font-size:.72rem;color:var(--text-dimmer);font-weight:400"></span></h3>
+        <div class="field"><label>Fatigue (1–10): <b id="ciFatVal">4</b></label><input id="ciFat" type="range" min="1" max="10" value="4"></div>
+        <div class="field-row">
+          <div class="field"><label>Mood</label><select id="ciMood"><option>good</option><option selected>neutral</option><option>low</option><option>stressed</option></select></div>
+          <div class="field"><label>Activity</label><select id="ciAct"><option>rest</option><option>work</option><option>exercise</option></select></div>
+        </div>
+        <button class="ctrl-btn" id="ciSave">Submit check-in</button>
+      </div>
+      <div class="panel reveal">
+        <h3>Crew <span id="crewCount" style="font-size:.72rem;color:var(--text-dimmer);font-weight:400"></span></h3>
+        <div id="crewList"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="analysis">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">AI Early Warning</div>
+      <h2>Signals → reasoning → action</h2>
+      <p>The event log below shows CrewCheck's real-time reasoning chain.</p>
+    </div>
+    <div class="live-panel">
+      <div class="panel reveal">
+        <h3>Event Log</h3>
+        <div class="log" id="eventLog"></div>
+      </div>
+      <div class="panel reveal">
+        <h3>Current Status</h3>
+        <div id="statusCard" style="padding:18px;border-radius:12px;background:rgba(0,184,255,.06);border:1px solid rgba(0,184,255,.25);margin-bottom:16px">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:700;color:var(--accent-2)" id="statusTitle">All Clear</div>
+          <div style="font-size:.8rem;color:var(--text-dim);margin-top:4px" id="statusSub">No anomalies detected.</div>
+        </div>
+        <div style="font-size:.78rem;color:var(--text-dim);line-height:1.7">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span>Baseline deviation</span><strong id="statDev" style="color:var(--text)">+0.4 bpm</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span>Recovery trend (7d)</span><strong id="statRec" style="color:var(--text)">stable</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span>Activity response</span><strong id="statAct" style="color:var(--text)">normal</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0">
+            <span>Confidence</span><strong id="statConf" style="color:var(--text)">—</strong>
+          </div>
+        </div>
+        <div class="controls" style="margin-top:18px">
+          <button class="ctrl-btn" id="simulateBtn">⚡ Simulate Anomaly</button>
+          <button class="ctrl-btn" id="resetBtn">↻ Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Under the Hood</div>
+      <h2>What the demo implements</h2>
+      <p>A working slice of the full CrewCheck system.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><h3>Real-Time Streaming</h3><p>Sensor values update every second with realistic noise and drift.</p></div>
+      <div class="feature reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg></div><h3>Personal Baseline</h3><p>Each astronaut has a learned baseline; deviations are measured against it.</p></div>
+      <div class="feature reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg></div><h3>Drift Detection</h3><p>Slow upward trends in resting HR are detected before thresholds are crossed.</p></div>
+      <div class="feature reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M12 6v6l4 2"/></svg></div><h3>Recovery Tracking</h3><p>Time to return to baseline is measured and compared across days.</p></div>
+      <div class="feature reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a5 5 0 0 1 3 4.6V13a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5v-1.4A5 5 0 0 1 8 7V6a4 4 0 0 1 4-4z"/><path d="M9 21h6"/></svg></div><h3>AI Early Warning</h3><p>Multiple weak signals are fused into a single risk score and alert.</p></div>
+      <div class="feature reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></div><h3>Recommendations</h3><p>Actionable next steps generated from current pattern state.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container footer-inner">
+    <p>© 2026 CrewCheck — Interactive simulation demo.</p>
+    <div class="footer-links">
+      <a href="#live">Live Dashboard</a>
+      <a href="#analysis">Analysis</a>
+      <a href="#features">Features</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const BASELINE = { hr: 52, spo2: 98.2, temp: 36.6, recoveryMin: 10, sleep: 75 };
+const state = {
+  hrHistory: [], spo2History: [], recoveryHistory: [], sleepHistory: [],
+  driftBpm: 0, fatigue: 4, anomaly: false, currentMetric: 'hr',
+  alertLevel: 'ok'
+};
+function randn(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function seed(){
+  state.hrHistory=[];state.spo2History=[];state.recoveryHistory=[];state.sleepHistory=[];
+  const now = Date.now();
+  for(let i=180;i>=0;i--){
+    state.hrHistory.push({t:now-i*1000,v:BASELINE.hr+randn()*2});
+    state.spo2History.push({t:now-i*1000,v:BASELINE.spo2+randn()*0.3});
+  }
+  for(let d=0;d<14;d++){
+    state.recoveryHistory.push(BASELINE.recoveryMin+randn()*1.2);
+    state.sleepHistory.push(BASELINE.sleep+randn()*6);
+  }
+}
+seed();
+
+setInterval(()=>{
+  if(state.anomaly){state.driftBpm+=0.06;state.fatigue=Math.min(10,state.fatigue+0.01);}
+  else{state.driftBpm*=0.995;state.fatigue+=(4-state.fatigue)*0.01;}
+  const hr = BASELINE.hr+state.driftBpm+randn()*2;
+  const spo2 = BASELINE.spo2-state.driftBpm*0.05+randn()*0.35;
+  const temp = BASELINE.temp+state.driftBpm*0.005+randn()*0.05;
+  const now = Date.now();
+  state.hrHistory.push({t:now,v:hr});
+  state.spo2History.push({t:now,v:spo2});
+  if(state.hrHistory.length>180)state.hrHistory.shift();
+  if(state.spo2History.length>180)state.spo2History.shift();
+  document.getElementById('hrVal').textContent = hr.toFixed(0);
+  document.getElementById('spo2Val').textContent = spo2.toFixed(0);
+  document.getElementById('tempVal').textContent = temp.toFixed(1);
+  evaluateRisk(hr,spo2); renderAll();
+},1000);
+
+function evaluateRisk(hr,spo2){
+  const dev = hr-BASELINE.hr;
+  let level='ok', msg='All vitals stable.';
+  if(dev>12||spo2<BASELINE.spo2-1.7){level='danger';msg=`Elevated HR (+${dev.toFixed(1)} bpm) and/or low SpO₂ — anomaly detected.`;}
+  else if(dev>6||spo2<BASELINE.spo2-0.7){level='warn';msg=`HR drift (+${dev.toFixed(1)} bpm) — monitor recovery.`;}
+  state.alertLevel=level;
+  const box=document.getElementById('miniAlert');
+  box.className='alert-box '+level;
+  const colorMap={ok:'var(--accent-2)',warn:'var(--warn)',danger:'var(--accent-3)'};
+  box.querySelector('svg').style.color=colorMap[level];
+  document.getElementById('miniAlertText').textContent=msg;
+  document.getElementById('vHR').classList.toggle('warn',dev>6);
+  document.getElementById('vSpO2').classList.toggle('warn',spo2<BASELINE.spo2-0.7);
+
+  const stTitle=document.getElementById('statusTitle'),stSub=document.getElementById('statusSub'),
+        stCard=document.getElementById('statusCard'),stConf=document.getElementById('statConf'),
+        stDev=document.getElementById('statDev'),stRec=document.getElementById('statRec'),
+        stAct=document.getElementById('statAct');
+  stDev.textContent=(dev>=0?'+':'')+dev.toFixed(1)+' bpm';
+  stDev.style.color=dev>6?'var(--warn)':'var(--text)';
+  const recTrend=state.anomaly?'rising':'stable';
+  stRec.textContent=recTrend;stRec.style.color=recTrend==='rising'?'var(--warn)':'var(--text)';
+  stAct.textContent=state.anomaly?'elevated':'normal';
+  if(level==='ok'){stTitle.textContent='All Clear';stTitle.style.color='var(--accent-2)';stSub.textContent='No anomalies detected.';stCard.style.background='rgba(0,184,255,.06)';stCard.style.borderColor='rgba(0,184,255,.25)';stConf.textContent='—';}
+  else if(level==='warn'){stTitle.textContent='Watch';stTitle.style.color='var(--warn)';stSub.textContent='Drift detected — recovery is slower than baseline.';stCard.style.background='rgba(245,158,11,.06)';stCard.style.borderColor='rgba(245,158,11,.3)';stConf.textContent='74%';}
+  else{stTitle.textContent='Alert';stTitle.style.color='var(--accent-3)';stSub.textContent='Multiple signals agree — early warning issued.';stCard.style.background='rgba(255,61,113,.06)';stCard.style.borderColor='rgba(255,61,113,.35)';stConf.textContent='91%';}
+
+  const driftPct=Math.min(100,(dev/20)*100+15);
+  const mDrift=document.getElementById('mDrift');
+  mDrift.style.width=driftPct+'%';
+  mDrift.style.background=dev>12?'linear-gradient(90deg,#f59e0b,#ff3d71)':dev>6?'linear-gradient(90deg,#f59e0b,#f59e0b)':'linear-gradient(90deg,#00b8ff,#1f6bff)';
+  const mDriftVal=document.getElementById('mDriftVal');
+  mDriftVal.textContent=dev<6?'Low':dev<12?'Medium':'High';
+  mDriftVal.style.color=dev<6?'var(--accent-2)':dev<12?'var(--warn)':'var(--accent-3)';
+
+  const recScore=state.anomaly?78:30;
+  document.getElementById('mRecovery').style.width=recScore+'%';
+  document.getElementById('mRecovery').style.background=state.anomaly?'linear-gradient(90deg,#f59e0b,#ff3d71)':'linear-gradient(90deg,#00b8ff,#1f6bff)';
+  document.getElementById('mRecoveryVal').textContent=state.anomaly?'Slow':'OK';
+  document.getElementById('mRecoveryVal').style.color=state.anomaly?'var(--warn)':'var(--accent-2)';
+
+  const fat=Math.round(state.fatigue);
+  document.getElementById('mFatigue').style.width=(fat*10)+'%';
+  document.getElementById('mFatigue').style.background=fat>=7?'linear-gradient(90deg,#f59e0b,#ff3d71)':fat>=5?'linear-gradient(90deg,#f59e0b,#f59e0b)':'linear-gradient(90deg,#00b8ff,#1f6bff)';
+  const mF=document.getElementById('mFatigueVal');
+  mF.textContent=fat+'/10';mF.style.color=fat>=7?'var(--accent-3)':fat>=5?'var(--warn)':'var(--accent-2)';
+
+  const sleepAvg=state.sleepHistory.slice(-7).reduce((a,b)=>a+b,0)/7;
+  const sleepQ=state.anomaly?42:Math.min(100,sleepAvg);
+  document.getElementById('mSleep').style.width=sleepQ+'%';
+  document.getElementById('mSleep').style.background=sleepQ<60?'linear-gradient(90deg,#f59e0b,#ff3d71)':'linear-gradient(90deg,#00b8ff,#1f6bff)';
+  const mS=document.getElementById('mSleepVal');
+  mS.textContent=sleepQ<60?'Poor':sleepQ<75?'Fair':'Good';
+  mS.style.color=sleepQ<60?'var(--warn)':'var(--accent-2)';
+
+  if(state._lastLevel!==level){
+    state._lastLevel=level;
+    addLog(level==='ok'?'Health state normal.':level==='warn'?`HR drift +${dev.toFixed(1)} bpm — recovery slower than baseline.`:`Anomaly: HR +${dev.toFixed(1)} bpm, SpO₂ ${spo2.toFixed(1)}%.`,level);
+    renderRecommendations(level);
+  }
+}
+
+const RECS={
+  ok:[{sev:'low',icon:'✓',text:'All vitals within personal baseline.',sub:'Continue normal activity.'},
+      {sev:'low',icon:'•',text:'Recovery time matches your 14-day norm.',sub:'No action needed.'}],
+  warn:[{sev:'med',icon:'↓',text:'Reduce exercise intensity for the next 24h.',sub:'Recovery has slowed for 3+ days.'},
+        {sev:'med',icon:'☾',text:'Prioritize sleep — aim for 8h.',sub:'Sleep quality down 12% vs baseline.'},
+        {sev:'low',icon:'•',text:'Monitor HR drift hourly.',sub:'Early signal only — no threshold crossed.'}],
+  danger:[{sev:'high',icon:'!',text:'Alert medical team now.',sub:'Multiple signals agree — confidence 91%.'},
+          {sev:'high',icon:'✕',text:'Stop strenuous activity immediately.',sub:'Recovery 2× baseline.'},
+          {sev:'med',icon:'↓',text:'Reduce exercise intensity and monitor sleep.',sub:'Recovery time increased for 5 days.'},
+          {sev:'med',icon:'☾',text:'Log fatigue and mood manually.',sub:'Sensor data insufficient without self-report.'}]
+};
+function renderRecommendations(level){
+  const list=document.getElementById('recList');list.innerHTML='';
+  RECS[level].forEach(r=>{
+    const d=document.createElement('div');d.className='rec-item sev-'+r.sev;
+    d.innerHTML=`<div class="ico">${r.icon}</div><div><div class="txt">${r.text}</div><div class="sub">${r.sub}</div></div>`;
+    list.appendChild(d);
+  });
+}
+
+function addLog(msg,level='info'){
+  const log=document.getElementById('eventLog');
+  const time=new Date().toLocaleTimeString('en-GB');
+  const e=document.createElement('div');e.className='log-entry '+level;
+  e.innerHTML=`<span class="log-time">${time}</span><span>${msg}</span>`;
+  log.insertBefore(e,log.firstChild);
+  while(log.children.length>60)log.removeChild(log.lastChild);
+}
+
+const miniCanvas=document.getElementById('miniChart'),miniCtx=miniCanvas.getContext('2d');
+const bigCanvas=document.getElementById('bigChart'),bigCtx=bigCanvas.getContext('2d');
+function fitCanvas(c){const dpr=window.devicePixelRatio||1,r=c.getBoundingClientRect();c.width=r.width*dpr;c.height=r.height*dpr;c.getContext('2d').setTransform(dpr,0,0,dpr,0,0);}
+function drawLineChart(ctx,canvas,data,opts={}){
+  const r=canvas.getBoundingClientRect(),w=r.width,h=r.height;
+  ctx.clearRect(0,0,w,h);if(data.length<2)return;
+  const vals=data.map(d=>d.v);let min=Math.min(...vals),max=Math.max(...vals);
+  if(opts.baseline){min=Math.min(min,opts.baseline);max=Math.max(max,opts.baseline);}
+  const pad=(max-min)*0.15||2;min-=pad;max+=pad;
+  const x=i=>(i/(data.length-1))*w,y=v=>h-((v-min)/(max-min))*h;
+  if(opts.baseline){
+    ctx.strokeStyle='rgba(139,150,176,0.35)';ctx.setLineDash([4,4]);
+    ctx.beginPath();const by=y(opts.baseline);ctx.moveTo(0,by);ctx.lineTo(w,by);ctx.stroke();
+    ctx.setLineDash([]);ctx.fillStyle='rgba(139,150,176,0.6)';ctx.font='10px Inter,sans-serif';
+    ctx.fillText('baseline',4,by-4);
+  }
+  const grad=ctx.createLinearGradient(0,0,0,h);const c1=opts.color||'#1f6bff';
+  grad.addColorStop(0,c1+'55');grad.addColorStop(1,c1+'00');
+  ctx.beginPath();ctx.moveTo(0,h);data.forEach((d,i)=>ctx.lineTo(x(i),y(d.v)));ctx.lineTo(w,h);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();data.forEach((d,i)=>{if(i===0)ctx.moveTo(x(i),y(d.v));else ctx.lineTo(x(i),y(d.v));});
+  ctx.strokeStyle=c1;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+  const lastX=x(data.length-1),lastY=y(data[data.length-1].v);
+  ctx.beginPath();ctx.arc(lastX,lastY,4,0,Math.PI*2);ctx.fillStyle=opts.dotColor||'#00b8ff';ctx.fill();
+}
+function renderMini(){
+  fitCanvas(miniCanvas);
+  const color=state.alertLevel==='ok'?'#1f6bff':state.alertLevel==='warn'?'#f59e0b':'#ff3d71';
+  drawLineChart(miniCtx,miniCanvas,state.hrHistory,{baseline:BASELINE.hr,color,dotColor:color});
+}
+function renderBig(){
+  fitCanvas(bigCanvas);const m=state.currentMetric;
+  if(m==='hr'){
+    const color=state.alertLevel==='ok'?'#1f6bff':state.alertLevel==='warn'?'#f59e0b':'#ff3d71';
+    drawLineChart(bigCtx,bigCanvas,state.hrHistory,{baseline:BASELINE.hr,color,dotColor:color});
+    document.getElementById('bigChartTitle').textContent='Heart Rate — last 3 minutes';
+  }else if(m==='spo2'){
+    drawLineChart(bigCtx,bigCanvas,state.spo2History,{baseline:BASELINE.spo2,color:'#00b8ff',dotColor:'#00b8ff'});
+    document.getElementById('bigChartTitle').textContent='SpO₂ — last 3 minutes';
+  }else if(m==='recovery'){
+    const data=state.recoveryHistory.map((v,i)=>({t:i,v}));
+    if(state.anomaly)data[data.length-1]={t:data.length-1,v:BASELINE.recoveryMin*2};
+    drawLineChart(bigCtx,bigCanvas,data,{baseline:BASELINE.recoveryMin,color:state.anomaly?'#ff3d71':'#1f6bff',dotColor:state.anomaly?'#ff3d71':'#00b8ff'});
+    document.getElementById('bigChartTitle').textContent='Recovery Time (min) — 14 days';
+  }else{
+    const data=state.sleepHistory.map((v,i)=>({t:i,v}));
+    if(state.anomaly)data[data.length-1]={t:data.length-1,v:42};
+    drawLineChart(bigCtx,bigCanvas,data,{baseline:BASELINE.sleep,color:'#00b8ff',dotColor:'#00b8ff'});
+    document.getElementById('bigChartTitle').textContent='Sleep Quality — 14 days';
+  }
+}
+function renderAll(){renderMini();renderBig();}
+
+document.querySelectorAll('.ctrl-btn[data-metric]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.ctrl-btn[data-metric]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');state.currentMetric=btn.dataset.metric;renderBig();
+  });
+});
+document.getElementById('simulateBtn').addEventListener('click',()=>{
+  state.anomaly=!state.anomaly;
+  if(state.anomaly){state.driftBpm=3;addLog('Anomaly simulation started — drift injected.','warn');}
+  else addLog('Anomaly cleared.','info');
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  state.anomaly=false;state.driftBpm=0;state.fatigue=4;state._lastLevel=null;
+  addLog('System reset to baseline.','ok');
+});
+
+(function stars(){
+  const s=document.getElementById('stars');let html='';
+  for(let i=0;i<60;i++){
+    const x=Math.random()*100,y=Math.random()*100,d=Math.random()*4,du=3+Math.random()*3,sz=Math.random()>0.8?3:2;
+    html+=`<span style="left:${x}%;top:${y}%;width:${sz}px;height:${sz}px;animation-delay:${d}s;animation-duration:${du}s"></span>`;
+  }
+  s.innerHTML=html;
+})();
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target);}});},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+const burger=document.getElementById('burger'),mm=document.getElementById('mobileMenu');
+document.getElementById('closeMenu').addEventListener('click',()=>mm.classList.remove('open'));
+burger.addEventListener('click',()=>mm.classList.add('open'));
+mm.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>mm.classList.remove('open')));
+
+renderRecommendations('ok');
+addLog('CrewCheck system initialized. Personal baseline loaded.','ok');
+addLog('Sensors connected. Streaming vitals...','info');
+renderAll();
+window.addEventListener('resize',renderAll);
+
+const $=id=>document.getElementById(id);
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let crew=[],activeId=null,editId=null;
+const RATES={hr:[30,120,60],spo2:[85,100,98],temp:[34,39,36.6],recovery:[1,120,10],sleep:[0,100,75]};
+const DB={next:2,checkins:[],members:[]};
+function cleanMember(d){
+  const name=String(d.name||'').trim();
+  if(name.length<1||name.length>40)throw new Error('Name is required (max 40 characters)');
+  const o={name,role:String(d.role||'').trim().slice(0,40)};
+  for(const k in RATES){
+    const [lo,hi,def]=RATES[k];const raw=d[k];const v=(raw===undefined||raw===null||raw==='')?def:Number(raw);
+    if(Number.isNaN(v))throw new Error(k+' must be a number');
+    if(v<lo||v>hi)throw new Error(`${k} must be between ${lo} and ${hi}`);
+    o[k]=v;
+  }
+  return o;
+}
+async function api(path,opt={}){
+  const method=opt.method||'GET',body=opt.body?JSON.parse(opt.body):{};
+  const m=path.match(/^\/members(?:\/(\d+))?(\/checkins)?$/);
+  if(!m)throw new Error('Not found');
+  const id=m[1]?+m[1]:null,sub=m[2];
+  if(!id){
+    if(method==='GET')return DB.members.map(x=>({...x}));
+    const mem={id:DB.next++,...cleanMember(body)};DB.members.push(mem);return {...mem};
+  }
+  const i=DB.members.findIndex(x=>x.id===id);
+  if(i<0)throw new Error('Member not found');
+  if(sub){
+    if(method==='GET')return DB.checkins.filter(c=>c.member_id===id).reverse().slice(0,30);
+    const f=parseInt(body.fatigue,10);
+    if(!(f>=1&&f<=10))throw new Error('fatigue must be 1-10');
+    DB.checkins.push({member_id:id,fatigue:f,mood:String(body.mood||'neutral').slice(0,20),activity:body.activity||'rest',ts:Date.now()});
+    return {ok:true};
+  }
+  if(method==='PUT'){DB.members[i]={id,...cleanMember(body)};return {...DB.members[i]};}
+  if(method==='DELETE'){DB.members.splice(i,1);DB.checkins=DB.checkins.filter(c=>c.member_id!==id);return {deleted:id};}
+  throw new Error('Method not allowed');
+}
+function msg(t,ok){const m=$('formMsg');m.textContent=t;m.style.color=ok?'var(--accent-2)':'var(--accent-3)';}
+function selectMember(id){
+  const m=crew.find(x=>x.id===id);if(!m)return;
+  activeId=id;
+  Object.assign(BASELINE,{hr:m.hr,spo2:m.spo2,temp:m.temp,recoveryMin:m.recovery,sleep:m.sleep});
+  state.driftBpm=0;state.anomaly=false;state.fatigue=4;state._lastLevel=null;
+  seed();
+  $('dashTitle').textContent=m.name+' — Live';$('baseLbl').textContent=m.hr;$('ciWho').textContent='for '+m.name;
+  addLog(`Monitoring ${m.name}. Personal baseline loaded: HR ${m.hr}, SpO₂ ${m.spo2}%, recovery ${m.recovery} min.`,'ok');
+  renderCrew();
+}
+function renderCrew(){
+  $('crewCount').textContent=crew.length+' member'+(crew.length===1?'':'s');
+  $('crewList').innerHTML=crew.map(m=>`<div class="member ${m.id===activeId?'active':''}">
+    <div class="avatar">${esc(m.name.trim()[0].toUpperCase())}</div>
+    <div class="info"><div class="nm">${esc(m.name)}${m.role?' <span style="color:var(--text-dimmer);font-weight:400">· '+esc(m.role)+'</span>':''}</div>
+    <div class="rates">HR ${m.hr} bpm · SpO₂ ${m.spo2}% · ${m.temp}°C · recovery ${m.recovery} min · sleep ${m.sleep}</div></div>
+    <button class="ctrl-btn ${m.id===activeId?'active':''}" onclick="selectMember(${m.id})">${m.id===activeId?'Monitoring':'Monitor'}</button>
+    <button class="ctrl-btn" onclick="editMember(${m.id})">Edit</button>
+    <button class="ctrl-btn danger" onclick="removeMember(${m.id})">✕</button></div>`).join('')||'<p style="color:var(--text-dim);font-size:.85rem">No crew yet. Add the first member.</p>';
+}
+function resetForm(){
+  editId=null;$('formTitle').textContent='Add Crew Member';$('saveMember').textContent='Save member';$('cancelEdit').style.display='none';
+  [['fName',''],['fRole',''],['fHr',60],['fSpo2',98],['fTemp',36.6],['fRec',10],['fSleep',75]].forEach(([i,v])=>$(i).value=v);
+}
+function editMember(id){
+  const m=crew.find(x=>x.id===id);editId=id;
+  $('formTitle').textContent='Edit '+m.name;$('saveMember').textContent='Update member';$('cancelEdit').style.display='';
+  $('fName').value=m.name;$('fRole').value=m.role;$('fHr').value=m.hr;$('fSpo2').value=m.spo2;$('fTemp').value=m.temp;$('fRec').value=m.recovery;$('fSleep').value=m.sleep;
+  $('fName').scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function removeMember(id){
+  const m=crew.find(x=>x.id===id);if(!confirm('Remove '+m.name+' and their check-ins?'))return;
+  try{await api('/members/'+id,{method:'DELETE'});crew=crew.filter(x=>x.id!==id);
+    if(activeId===id){activeId=null;if(crew.length)selectMember(crew[0].id);}renderCrew();}catch(e){msg(e.message)}
+}
+$('cancelEdit').onclick=()=>{resetForm();msg('')};
+$('saveMember').onclick=async()=>{
+  const body=JSON.stringify({name:$('fName').value,role:$('fRole').value,hr:$('fHr').value,spo2:$('fSpo2').value,temp:$('fTemp').value,recovery:$('fRec').value,sleep:$('fSleep').value});
+  try{
+    const m=await api(editId?'/members/'+editId:'/members',{method:editId?'PUT':'POST',body});
+    if(editId)crew=crew.map(x=>x.id===m.id?m:x);else crew.push(m);
+    msg(editId?'Updated '+m.name:'Added '+m.name,true);resetForm();renderCrew();
+    if(m.id===activeId||!editId)selectMember(m.id);
+  }catch(e){msg(e.message)}
+};
+$('ciFat').oninput=()=>$('ciFatVal').textContent=$('ciFat').value;
+$('ciSave').onclick=async()=>{
+  if(!activeId)return msg('Select a member first.');
+  try{
+    await api('/members/'+activeId+'/checkins',{method:'POST',body:JSON.stringify({fatigue:+$('ciFat').value,mood:$('ciMood').value,activity:$('ciAct').value})});
+    state.fatigue=+$('ciFat').value;
+    addLog(`Check-in saved: fatigue ${$('ciFat').value}/10, mood ${$('ciMood').value}, activity ${$('ciAct').value}.`,'info');msg('Check-in saved',true);
+  }catch(e){msg(e.message)}
+};
+(async function loadCrew(){
+  try{crew=await api('/members');if(crew.length)selectMember(crew[0].id);renderCrew();}
+  catch(e){msg(e.message)}
+})();
+
+(function welcome(){
+  const w=document.getElementById('welcome'),b=document.getElementById('enterBtn'),st=document.getElementById('wStatus');
+  let ready=false,h='';
+  for(let i=0;i<50;i++){
+    const x=Math.random()*100,y=Math.random()*100,d=Math.random()*4,du=3+Math.random()*3,sz=Math.random()>0.8?3:2;
+    h+=`<span style="left:${x}%;top:${y}%;width:${sz}px;height:${sz}px;animation-delay:${d}s;animation-duration:${du}s"></span>`;
+  }
+  document.getElementById('wStars').innerHTML=h;
+  document.body.style.overflow='hidden';
+  ['Calibrating sensors…','Loading personal baselines…','Systems nominal. Ready.'].forEach((t,i)=>setTimeout(()=>{
+    st.textContent=t;
+    if(i===2){ready=true;b.disabled=false;w.classList.add('ready');}
+  },1000+i*750));
+  function enter(){
+    if(!ready||!document.body.contains(w))return;
+    w.classList.add('leave');document.body.style.overflow='';window.scrollTo(0,0);
+    setTimeout(()=>w.remove(),900);
+  }
+  b.addEventListener('click',enter);
+  document.addEventListener('keydown',e=>{if(e.key==='Enter')enter();});
+})();
+</script>
+</body>
+</html>
